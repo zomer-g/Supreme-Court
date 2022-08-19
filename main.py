@@ -12,34 +12,40 @@ def case_func(year,case_n,section_n):
     #Get the html text from the supreme Court site
     page = requests.get(URL)
 
-    soup = BeautifulSoup(page.content, "html.parser")
+    #There are some files that are encoded appropriately and some that are not
+    soup = BeautifulSoup(page.content, "html.parser", from_encoding="iso-8859-8")
     results = soup.find(id=section_id)
+    fails = 0
 
-    #File information fields are extracted
-    menu1_dict={}
-    t_list=[]
-    v_list =[]
+    if results is not None:
+        fails = 0
 
-    #Get list of all titles
-    titles = results.find_all("span", class_="caseDetails-label")
-    for title in titles:
-        t_list.append(title.text)
+        #File information fields are extracted
+        menu1_dict={}
+        t_list=[]
+        v_list =[]
 
-    #Get list of all values
-    vals = results.find_all("span", class_="caseDetails-info")
-    for val in vals:
-        v_list.append(val.text)
+        #Get list of all titles
+        titles_m1 = results.find_all("span", class_="caseDetails-label")
+        for title in titles_m1:
+            t_list.append(title.text)
 
-    #Create a dict with all the case level titles and values
-    menu1_dict = dict(zip(t_list, v_list))
-    return(menu1_dict)
+        #Get list of all values
+        vals_m1 = results.find_all("span", class_="caseDetails-info")
+        for val in vals_m1:
+            v_list.append(val.text)
+
+        #Create a dict with all the case level titles and values
+        menu1_dict = dict(zip(t_list, v_list))
+
+        return (menu1_dict)
 
 #Make a list of all cases dictionaries
 cases_list=[]
-for i in range(1,2):
-    cases_list.append(case_func(2022,i,1))S
-
-#print(cases_list)
+for i in range(5000,5020):
+    #An empty dictionary condition is intended for confidential cases
+    if case_func(2022,i,1) is not None:
+        cases_list.append(case_func(2022,i,1))
 
 #Export to csv all the cases data
 to_csv = cases_list
@@ -49,3 +55,4 @@ with open('court_cases.csv', 'w', newline='', encoding='utf-8') as output_file:
     dict_writer.writeheader()
     dict_writer.writerows(to_csv)
     output_file.close()
+
