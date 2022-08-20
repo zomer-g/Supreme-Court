@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 
-#Case_func receives a year, a running number, and a tab (currently works only with tab 1), and returns a dictionary containing titles and values of the specific case.
+#Case_func receives a year, a running number, and a tab/section, and returns a dictionary containing titles and values of the specific case.
 def case_func(year,case_n,section_n):
     #Parameter names fixed based on function
     case_id = str(case_n).zfill(6)
@@ -17,11 +17,13 @@ def case_func(year,case_n,section_n):
     soup = BeautifulSoup(page.content, "html.parser", from_encoding="iso-8859-8")
     results = soup.find(id=section_id)
 
+    #Section 1 of the Supreme Court website has a different structure from Sections 2-7, so there are two separate parts.
     if results is not None:
         if section_n == 1:
 
             #File information fields are extracted
             menu1_dict={}
+            #create unique name for each case
             t_list=[f'case_id_s']
             v_list =[f'{case_n}/{year}']
 
@@ -40,20 +42,24 @@ def case_func(year,case_n,section_n):
 
             return (menu1_dict)
 
+        #for sections 2-7
         if section_n > 1 and section_n <= 7:
+            # create unique name for each case
             t2_list = [f'case_id_s']
             v2_list = [f'{case_n}/{year}']
             menu2_dict = {}
 
-
+            #find the right place in the HTML file and clean it
             for th in results.find_all("th"):
                 t2_list.append(th.text.replace('  ', '').replace('\r', '').replace('\n', ''))
             for td in results.find_all("td"):
                 v2_list.append(td.text.replace('  ', '').replace('\r', '').replace('\n', ''))
 
+            #Find the number of columns and lines of each table
             lines = int(len(v2_list) / len(t2_list))
             long = int(len(t2_list))
 
+            #Create dictionary for each line in the table
             for l in range(lines):
                 v2_list_cut = v2_list[long * (l):long * (l + 1)]
                 menu2_dict = dict(zip(t2_list, v2_list_cut))
@@ -63,15 +69,16 @@ def case_func(year,case_n,section_n):
         else:
             return ('This section is not available')
 
+#the names of the sections in the Supreme-Court website, and later it will use them for the names of the CSV files
 section_name= {1:'general_information', 2: 'parties', 3:'below', 4:'discussions', 5:'events', 6: 'confirmations', 7:'requests'}
 
+#Runing the function on each table/section
 for section in range(1,8):
-
     main_list = []
-
     # fails get +1 when the case is confidential or does not expire, so when the script reaches the last case of the year it gets continuous failures (8) and stops.
     fails = 0
 
+    #For each section, running the function on each case
     for i in range(1, 4):
         # An empty dictionary condition is intended for confidential cases
         if case_func(2022, i, section) is not None:
