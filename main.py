@@ -15,10 +15,8 @@ def case_func(year,case_n,section_n):
     #There are some files that are encoded appropriately and some that are not
     soup = BeautifulSoup(page.content, "html.parser", from_encoding="iso-8859-8")
     results = soup.find(id=section_id)
-    fails = 0
 
     if results is not None:
-        fails = 0
 
         #File information fields are extracted
         menu1_dict={}
@@ -42,10 +40,19 @@ def case_func(year,case_n,section_n):
 
 #Make a list of all cases dictionaries
 cases_list=[]
-for i in range(5000,5020):
+
+#fails get +1 when the case is confidential or does not expire, so when the script reaches the last case of the year it gets continuous failures (8) and stops.
+fails=0
+
+for i in range(5550,5570):
     #An empty dictionary condition is intended for confidential cases
     if case_func(2022,i,1) is not None:
+        fails=0
         cases_list.append(case_func(2022,i,1))
+    else:
+        fails+=1
+    if fails ==8:
+        break
 
 #Export to csv all the cases data
 to_csv = cases_list
