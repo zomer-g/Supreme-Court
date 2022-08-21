@@ -26,6 +26,7 @@ def case_func(year,case_n,section_n):
             #create unique name for each case
             t_list=[f'case_id_s']
             v_list =[f'{case_n}/{year}']
+            menu1_list = []
 
             #Get list of all titles
             titles_m1 = results.find_all("span", class_="caseDetails-label")
@@ -39,32 +40,41 @@ def case_func(year,case_n,section_n):
 
             #Create a dict with all the case level titles and values
             menu1_dict = dict(zip(t_list, v_list))
+            if v_list!= []:
+                menu1_list.append(menu1_dict)
+            return menu1_list
 
-            return (menu1_dict)
+        #for sections 2-6 (7 got bug)
+        if section_n > 1 and section_n <= 6:
+            menu2_list = []
 
-        #for sections 2-7
-        if section_n > 1 and section_n <= 7:
             # create unique name for each case
-            t2_list = [f'case_id_s']
-            v2_list = [f'{case_n}/{year}']
-            menu2_dict = {}
+            t2_main_list = [f'case_id_s']
 
             #find the right place in the HTML file and clean it
-            for th in results.find_all("th"):
-                t2_list.append(th.text.replace('  ', '').replace('\r', '').replace('\n', ''))
-            for td in results.find_all("td"):
-                v2_list.append(td.text.replace('  ', '').replace('\r', '').replace('\n', ''))
+            for tr in results.find('tr'):
+                t2_main_list += (tr.text.strip().replace('  ', '').replace('\r', '').split('\n'))
+                while '' in t2_main_list:
+                    t2_main_list.remove('')
 
-            #Find the number of columns and lines of each table
-            lines = int(len(v2_list) / len(t2_list))
-            long = int(len(t2_list))
+
+            v2_main_list = []
+            for td in results.find_all('td'):
+                v2_main_list.append(td.text.strip())
+
+            #Find the number of columns, lines and rounds of each table
+            len_t = len(t2_main_list) - 1
+            len_v = len(v2_main_list)
+            rounds = int(len_v / len_t)
 
             #Create dictionary for each line in the table
-            for l in range(lines):
-                v2_list_cut = v2_list[long * (l):long * (l + 1)]
-                menu2_dict = dict(zip(t2_list, v2_list_cut))
-                if menu2_dict != {}:
-                    return (menu2_dict)
+            for r in range(rounds):
+                menu2_dict = {}
+                list_r = [f'{case_n}/{year}']
+                list_r += (v2_main_list[r * len_t:(r + 1) * len_t])
+                menu2_dict = dict(zip(t2_main_list, list_r))
+                menu2_list.append(menu2_dict)
+            return (menu2_list)
 
         else:
             return ('This section is not available')
@@ -73,25 +83,35 @@ def case_func(year,case_n,section_n):
 section_name= {1:'general_information', 2: 'parties', 3:'below', 4:'discussions', 5:'events', 6: 'confirmations', 7:'requests'}
 
 #Runing the function on each table/section
-for section in range(1,8):
+for section in range(1,7):
     main_list = []
     # fails get +1 when the case is confidential or does not expire, so when the script reaches the last case of the year it gets continuous failures (8) and stops.
     fails = 0
 
-    #For each section, running the function on each case
-    for i in range(1, 4):
-        # An empty dictionary condition is intended for confidential cases
-        if case_func(2022, i, section) is not None:
-            fails = 0
-            main_list.append(case_func(2022, i, section))
-        else:
-            fails += 1
-        if fails == 8:
-            break
+    print(section_name[section])
+    main_list = []
+
+    # Select range of years to run on
+    for year in range(2019, 2020):
+        print(year)
+
+        #For each section, running the function on each case
+        for case in range(1, 6):
+
+
+            # An empty dictionary condition is intended for confidential cases
+            if case_func(year, case, section) is not None:
+                fails = 0
+                main_list+=(case_func(year, case, section))
+            else:
+                fails += 1
+            if fails == 8:
+                break
+            print (case)
 
 
 
-    # Export to csv all the cases data
+    #Export to csv all the cases data
     to_csv = main_list
     keys = to_csv[0].keys()
     csv_name = section_name[section]+'.csv'
