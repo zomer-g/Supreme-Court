@@ -2,6 +2,18 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 
+#parameters of the run
+s_section = 1
+e_section = 8
+
+s_year = 2016
+e_year = 2022
+
+s_case = 1
+e_case = 20
+
+
+
 #Case_func receives a year, a running number, and a tab/section, and returns a dictionary containing titles and values of the specific case.
 def case_func(year,case_n,section_n):
     #Parameter names fixed based on function
@@ -45,45 +57,40 @@ def case_func(year,case_n,section_n):
             return menu1_list
 
         #for sections 2-6 (7 got bug)
-        if section_n > 1 and section_n <= 6:
-            menu2_list = []
+        if section_n > 1 and section_n <= 7:
+            titles_2 = []  # [f'case_id_s']
+            for item in results.select("th"):
+                titles_2.append(item.text.strip())
 
-            # create unique name for each case
-            t2_main_list = [f'case_id_s']
+            values_2 = []  # [f'{case_n}/{year}']
+            for item in results.select("td"):
+                values_2.append(item.text.strip().replace('  ', '').replace('\r', ''))
 
-            #find the right place in the HTML file and clean it
-            for tr in results.find('tr'):
-                t2_main_list += (tr.text.strip().replace('  ', '').replace('\r', '').split('\n'))
-                while '' in t2_main_list:
-                    t2_main_list.remove('')
-
-
-            v2_main_list = []
-            for td in results.find_all('td'):
-                v2_main_list.append(td.text.strip())
-
-            #Find the number of columns, lines and rounds of each table
-            len_t = len(t2_main_list) - 1
-            len_v = len(v2_main_list)
+            # Find the number of columns, lines and rounds of each table
+            len_t = len(titles_2)
+            len_v = len(values_2)
             rounds = int(len_v / len_t)
 
-            #Create dictionary for each line in the table
+            # Create dictionary for each line in the table
+            menu2_list = []
             for r in range(rounds):
                 menu2_dict = {}
-                list_r = [f'{case_n}/{year}']
-                list_r += (v2_main_list[r * len_t:(r + 1) * len_t])
-                menu2_dict = dict(zip(t2_main_list, list_r))
+
+                list_r = []
+                list_r += (values_2[r * len_t:(r + 1) * len_t])
+                menu2_dict = dict(zip(titles_2, list_r))
+                id_dict1 = {f'case_id_s': f'{case_n}/{year}'}
+                menu2_dict.update(id_dict1)
                 menu2_list.append(menu2_dict)
             return (menu2_list)
 
-        else:
-            return ('This section is not available')
+
 
 #the names of the sections in the Supreme-Court website, and later it will use them for the names of the CSV files
 section_name= {1:'general_information', 2: 'parties', 3:'below', 4:'discussions', 5:'events', 6: 'confirmations', 7:'requests'}
 
 #Runing the function on each table/section
-for section in range(1,7):
+for section in range(s_section,e_section):
     main_list = []
     # fails get +1 when the case is confidential or does not expire, so when the script reaches the last case of the year it gets continuous failures (8) and stops.
     fails = 0
@@ -92,12 +99,11 @@ for section in range(1,7):
     main_list = []
 
     # Select range of years to run on
-    for year in range(2019, 2020):
+    for year in range(s_year, e_year):
         print(year)
 
         #For each section, running the function on each case
-        for case in range(1, 6):
-
+        for case in range(s_case, e_case):
 
             # An empty dictionary condition is intended for confidential cases
             if case_func(year, case, section) is not None:
